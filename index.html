@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mori: Sandbox • Home</title>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#f8fafc;
+      --ink:#0f172a; --muted:#475569;
+      --panel-shadow: 0 8px 24px rgba(15,23,42,0.06);
+      --radius: 18px;
+      --navH: 72px; /* set at runtime */
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family:'Inter','Plus Jakarta Sans',ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+      color:var(--ink); background:var(--bg); overflow-x:hidden;
+    }
+
+    /* ===== Background aura ===== */
+    .aura{
+      position:fixed; inset:0; z-index:-2;
+      background:
+        radial-gradient(1300px 900px at 18% 22%, rgba(96,165,250,0.38), transparent 62%),
+        radial-gradient(1300px 900px at 82% 78%, rgba(255,153,79,0.40), transparent 62%),
+        radial-gradient(900px 1000px at 50% 110%, rgba(255,200,140,0.22), transparent 64%),
+        var(--bg);
+    }
+    .aura::before,.aura::after{
+      content:""; position:absolute; inset:-28%; border-radius:50%;
+      filter: blur(120px); mix-blend-mode:screen; opacity:.85;
+      background:
+        radial-gradient(circle at 30% 40%, rgba(96,165,250,0.42), transparent 60%),
+        radial-gradient(circle at 72% 72%, rgba(255,153,79,0.44), transparent 60%);
+      animation:radiate 24s ease-in-out infinite;
+    }
+    .aura::after{animation-duration:34s; animation-direction:reverse; opacity:.6}
+    @keyframes radiate{0%,100%{transform:scale(1) rotate(0)}50%{transform:scale(1.08) rotate(12deg)}}
+
+    /* ===== Top Navigation — fixed, flush, backdrop blur only ===== */
+    .nav{
+      position:fixed; top:0; left:0; right:0; z-index:1000;
+      display:flex; justify-content:center;
+      background: rgba(255,255,255,0.04);             /* needed for blur to show */
+      backdrop-filter: blur(12px) saturate(120%);
+      -webkit-backdrop-filter: blur(8px) saturate(120%);
+      /* no border, no shadow -> flush with background */
+    }
+    .nav-inner{ width:min(1120px,96%); display:flex; align-items:center; justify-content:space-between; gap:16px; padding:14px; }
+    .brand{ display:flex; align-items:center; gap:10px; font-weight:600; letter-spacing:.2px }
+    .brand svg{ width:22px; height:22px }
+    .brand-name{ opacity:.92 }
+
+    .menu{ display:flex; gap:8px; align-items:center; isolation:isolate; position:relative; }
+    .menu > .item{ position:relative; padding-bottom:12px }
+    .nav-btn{
+      appearance:none; border:1px solid transparent; background:transparent; color:var(--ink);
+      font-weight:500; letter-spacing:.2px; font-size:14px; padding:10px 14px; border-radius:12px; cursor:pointer;
+      transition: color .12s ease, opacity .12s ease, background .12s ease, box-shadow .12s ease; box-shadow:none;
+      position: relative; z-index: 20; opacity:.92;
+    }
+    .nav-btn:hover{
+      opacity:.6;
+      background: rgba(255,255,255,0.10);
+      border:1px solid rgba(255,255,255,0.28);
+    }
+
+    .dropdown{
+      position:absolute; top: calc(100% + 6px); left:0; min-width:240px;
+      background: linear-gradient(to bottom right, rgba(148,163,184,.12), rgba(255,255,255,.54));
+      border:1px solid rgba(255,255,255,0.82); border-radius:16px;
+      box-shadow:0 18px 28px rgba(15,23,42,0.08), 0 2px 6px rgba(15,23,42,0.05);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(120px);
+      padding:6px;
+      opacity:0; transform: translateY(8px); visibility:hidden; pointer-events:none;
+      transition: opacity .18s ease, transform .18s ease, visibility .18s ease;
+      z-index:10;
+    }
+    .item:hover .dropdown, .item:focus-within .dropdown{ opacity:1; transform: translateY(0); visibility:visible; pointer-events:auto; }
+    .drop-link{ display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:12px; color:inherit; text-decoration:none; font-size:13px; }
+    .drop-link:hover{
+      background: linear-gradient(to bottom right, rgba(148,163,184,.18), rgba(255,255,255,.78));
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.92), 0 6px 14px rgba(15,23,42,0.06);
+      backdrop-filter: blur(6px);
+    }
+
+    /* ===== Layout ===== */
+    .wrap{ max-width:1120px; margin:0 auto; padding: calc(var(--navH) + 24px) 18px 96px; }
+
+    /* ===== Hero (no sticky effects) ===== */
+    .hero{ display:grid; place-items:center; padding: 96px 10px 44px }
+    .hello{
+      margin:0; text-align:center; font-weight:600; font-size: clamp(36px, 6.2vw, 64px);
+      letter-spacing:-0.02em; line-height:1.08; opacity:.96;
+      background: linear-gradient(180deg, rgba(15,23,42,.92), rgba(15,23,42,.68));
+      -webkit-background-clip:text; background-clip:text; color:transparent;
+      text-shadow: 0 1px 0 rgba(255,255,255,0.25);
+      padding-bottom:10px; margin-bottom:12px;
+    }
+    .prompt{ margin:12px 0 0; text-align:center; color:var(--muted) }
+
+    /* ===== Cards / Panels ===== */
+    .sections{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:18px; margin-top:28px; isolation:isolate; }
+    .card{
+      position:relative; border-radius: var(--radius); padding:22px; cursor:pointer; overflow:hidden; isolation:isolate;
+      background: linear-gradient(to bottom right, rgba(148,163,184,.16), rgba(255,255,255,.72));
+      border: 1px solid rgba(255,255,255,0.92);
+      box-shadow: var(--panel-shadow); backdrop-filter: blur(10px);
+      transition: transform .15s ease, box-shadow .15s ease; z-index:1;
+    }
+    .card:hover{ transform: translateY(-2px); box-shadow: 0 12px 28px rgba(15,23,42,.10); z-index:3; }
+    .card h2{ margin:0 0 6px; font-size: 18px; font-weight:600; letter-spacing:.2px }
+    .card p{ margin:0; color:var(--muted) }
+
+    .panel{
+      margin-top: 24px; border-radius: var(--radius); padding:18px;
+      background: linear-gradient(to bottom right, rgba(148,163,184,.16), rgba(255,255,255,.66));
+      border:1px solid rgba(255,255,255,0.7); box-shadow: var(--panel-shadow); backdrop-filter: blur(8px);
+      overflow: visible; position:relative; z-index:10;
+    }
+    .panel h3{ margin:0 0 14px; font-size:16px; font-weight:600; letter-spacing:.2px }
+
+    .pins{ display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap:14px; overflow:visible; padding-top:6px; isolation:isolate; }
+    .pin{ border-radius:16px; padding:20px; background:#fff; border:1px solid #e5e7eb; box-shadow: var(--panel-shadow); transition:.15s; }
+    .pin:hover{ transform: translateY(-2px); box-shadow: 0 12px 28px rgba(15,23,42,.10); }
+    .pin h4{ margin:0 0 8px; font-size:17px }
+    .meta{ font-size:13px; color:#475569 }
+    .chips{ margin-top:10px; display:flex; gap:8px; flex-wrap:wrap }
+    .chip{ font-size:12px; padding:6px 10px; border-radius:999px; }
+    .chip--orange{background: rgba(249,115,22,.10); border:1px solid rgba(249,115,22,.28); color:#7c2d12}
+    .chip--blue{background: rgba(59,130,246,.10); border:1px solid rgba(59,130,246,.26); color:#1e3a8a}
+    .chip--emerald{background: rgba(16,185,129,.10); border:1px solid rgba(16,185,129,.26); color:#065f46}
+    .chip--teal{background: rgba(20,184,166,.10); border:1px solid rgba(20,184,166,.26); color:#115e59}
+    .chip--purple{background: rgba(139,92,246,.10); border:1px solid rgba(139,92,246,.26); color:#4c1d95}
+    .chip--gray{background: rgba(148,163,184,.12); border:1px solid rgba(148,163,184,.28); color:#334155}
+
+    .feed{ display:flex; flex-direction:column; gap:12px; }
+    .news{ width:100%; border-radius:16px; padding:18px 20px; background:#fff; border:1px solid #e5e7eb; box-shadow: var(--panel-shadow); transition:.15s; }
+    .news:hover{ transform: translateY(-1px); box-shadow: 0 12px 28px rgba(15,23,42,.10); }
+    .news h4{ margin:0 0 6px; font-size:17px }
+    .news .meta{ margin-bottom:8px; }
+    .news p{ margin:0; color:#334155; line-height:1.5 }
+
+    /* ===== Footer ===== */
+    .footer{ margin-top: 40px; padding: 32px 18px 20px; background: rgba(255,255,255,0.66);
+      border-top: 1px solid rgba(255,255,255,0.8); box-shadow: 0 -6px 18px rgba(15,23,42,0.04) inset;
+      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    }
+    .footer-inner{ max-width:1120px; margin:0 auto; }
+    .footer-columns{ display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 24px; }
+    .footer-col h4{ margin:0 0 10px; font-weight:700; font-size:14px; letter-spacing:.2px; color:#0f172a; }
+    .footer-col ul{ list-style:none; margin:0; padding:0; }
+    .footer-col li{ margin:8px 0; }
+    .footer-col a{ text-decoration:none; color:#334155; font-size:14px; transition: color .15s ease; }
+    .footer-col a:hover{ color:#0f172a; }
+    .footer-bottom{ margin-top: 18px; padding-top: 14px; border-top: 1px solid rgba(15,23,42,0.08); text-align:center; color:#64748b; font-size:12px; }
+
+    @media (max-width: 900px){ .pins{ grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 640px){
+      .sections{ grid-template-columns: 1fr }
+      .pins{ grid-template-columns: 1fr; }
+      .hero{ padding-top: 72px; }
+      .footer-columns{ grid-template-columns: 1fr; }
+    }
+    @media (prefers-reduced-motion: reduce){ .aura::before,.aura::after{animation:none} }
+  </style>
+</head>
+<body>
+  <div class="aura" aria-hidden="true"></div>
+
+  <!-- NAV -->
+  <nav class="nav" id="topNav">
+    <div class="nav-inner">
+      <div class="brand" aria-label="Mori Sandbox logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.88L18.18 22 12 18.77 5.82 22 7 14.15l-5-4.88 6.91-1.01L12 2z"/>
+        </svg>
+        <div class="brand-name">Mori: Sandbox</div>
+      </div>
+      <div class="menu">
+        <div class="item" id="projectsItem">
+          <button class="nav-btn" aria-haspopup="true" aria-expanded="false">Projects</button>
+          <div class="dropdown" role="menu" aria-label="Projects">
+            <div id="projectsMenu"></div>
+            <div style="height:6px"></div>
+            <a class="drop-link" href="#" data-route="project-settings">Project Settings (new)</a>
+          </div>
+        </div>
+        <div class="item">
+          <button class="nav-btn" aria-haspopup="true" aria-expanded="false">Network</button>
+          <div class="dropdown" role="menu" aria-label="Network">
+            <a class="drop-link" href="#" data-route="explore">Explore</a>
+            <a class="drop-link" href="#" data-route="requests">Requests</a>
+            <a class="drop-link" href="#" data-route="messages">Messages</a>
+          </div>
+        </div>
+        <div class="item account">
+          <button class="nav-btn account-toggle" aria-haspopup="true" aria-expanded="false" style="display:flex;align-items:center;gap:10px;">
+            <span>Account</span>
+            <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=96&auto=format&fit=crop" alt="Profile" class="pfp" width="24" height="24" style="width:24px;height:24px;border-radius:50%;">
+          </button>
+          <div class="dropdown" role="menu" aria-label="Account">
+            <a class="drop-link" href="#" data-route="profile">Profile</a>
+            <a class="drop-link" href="#" data-route="settings">Settings</a>
+            <a class="drop-link" href="#" data-route="notifications">Notifications</a>
+            <a class="drop-link" href="#" data-route="subscription">Subscription</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main class="wrap">
+    <section class="hero" role="banner">
+      <h1 class="hello" id="hello">Welcome back, <span id="username">Founder</span></h1>
+      <p class="prompt" id="prompt">Where would you like to go?</p>
+
+      <div class="sections" aria-label="Primary actions">
+        <article class="card tint-blue" id="toProjects" tabindex="0" role="button" aria-pressed="false">
+          <h2>My Project Lists</h2>
+          <p>Review roadmaps, tasks, and milestones.</p>
+        </article>
+        <article class="card tint-violet" id="toNetworking" tabindex="0" role="button" aria-pressed="false">
+          <h2>Explore Networking Space</h2>
+          <p>Discover collaborators, mentors, and active rooms.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="pinnedTitle">
+      <h3 id="pinnedTitle">Pinned projects</h3>
+      <div class="pins" id="pins"></div>
+    </section>
+
+    <section class="panel" aria-labelledby="msgsTitle">
+      <h3 id="msgsTitle">Recent messages</h3>
+      <div class="pins" id="msgs"></div>
+    </section>
+
+    <section class="panel" aria-labelledby="insightsTitle">
+      <h3 id="insightsTitle">Insights</h3>
+      <div class="feed" id="insights"></div>
+    </section>
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="footer" role="contentinfo">
+    <div class="footer-inner">
+      <div class="footer-columns" aria-label="Footer navigation">
+        <nav class="footer-col" aria-labelledby="assistTitle">
+          <h4 id="assistTitle">Assistance</h4>
+          <ul>
+            <li><a href="#" data-route="guide">Sandbox Guide</a></li>
+            <li><a href="#" data-route="about">About Sandbox</a></li>
+            <li><a href="#" data-route="contact">Contact Us</a></li>
+            <li><a href="#" data-route="terms">Terms &amp; Policy</a></li>
+          </ul>
+        </nav>
+        <nav class="footer-col" aria-labelledby="productsTitle">
+          <h4 id="productsTitle">Products</h4>
+          <ul>
+            <li><a href="#" data-route="toolkits">Toolkits</a></li>
+            <li><a href="#" data-route="pricing">Subscription Pricing</a></li>
+            <li><a href="#" data-route="cancellation">Cancellation</a></li>
+          </ul>
+        </nav>
+      </div>
+      <div class="footer-bottom">© <span id="year"></span> Mori: Sandbox</div>
+    </div>
+  </footer>
+
+  <script>
+    // Personalization
+    const USER_NAME = "Brayden";
+    document.getElementById('username').textContent = USER_NAME;
+    document.querySelectorAll('#year').forEach(n=>n.textContent = new Date().getFullYear());
+
+    // Ensure content starts below fixed nav
+    function setNavHeight(){
+      const nav = document.getElementById('topNav');
+      if(!nav) return;
+      const h = Math.ceil(nav.getBoundingClientRect().height);
+      document.documentElement.style.setProperty('--navH', h+'px');
+    }
+    setNavHeight(); window.addEventListener('resize', setNavHeight);
+
+    // Demo data
+    const PINNED = [
+      { id:"p1", name:"Raflesia — Talent Graph", tags:["Recruitment","Graph"], updated:"2d ago", focus:"Hiring pipeline MVP" },
+      { id:"p2", name:"Campus Startup Hub", tags:["Community"], updated:"5d ago", focus:"Mentor matching" },
+      { id:"p3", name:"Jakarta Angels", tags:["Fundraising","Network"], updated:"1w ago", focus:"Pitch deck v3" },
+      { id:"p4", name:"Sandbox Jobs", tags:["Product"], updated:"3d ago", focus:"Job board UI" }
+    ];
+    const MESSAGES = [
+      { id:"u-anna",  name:"Anna S.",  time:"2m ago",  text:"Free later for a 15-min sync about the mentor pool?" },
+      { id:"u-rahul", name:"Rahul P.", time:"1h ago",  text:"Shared notes on the pitch deck v3 — take a look!" },
+      { id:"u-lina",  name:"Lina W.",  time:"Yesterday",text:"Can you intro me to the Jakarta Angels room?" }
+    ];
+    const INSIGHTS = [
+      { id:"n1", title:"MatchGraph hits 10k successful intros", team:"Signal Rooms", time:"Today", blurb:"A new routing model improved introduction acceptance by 21% week-over-week." },
+      { id:"n2", title:"Investor CRM v0.9 Release", team:"Investor Tools", time:"Yesterday", blurb:"Pipeline stages, smart reminders, and email sync enter public beta." },
+      { id:"n3", title:"Sandbox Jobs launches talent campaign", team:"Growth", time:"2d ago", blurb:"Top-of-funnel playbook leads to 2.3× increase in qualified candidates." }
+    ];
+
+    const CHIP_HUES = ["orange","blue","emerald","teal","purple","gray"];
+    const $ = (s, r=document)=>r.querySelector(s);
+
+    // Projects dropdown
+    const projectsMenu = $('#projectsMenu');
+    if(projectsMenu){
+      projectsMenu.innerHTML = PINNED.map(p=>`<a class="drop-link" href="#" data-route="project:${p.id}">${p.name}</a>`).join('');
+    }
+
+    // Render pinned (limit 3)
+    const pinsEl = $('#pins');
+    PINNED.slice(0,3).forEach(p=>{
+      const el=document.createElement('article');
+      el.className='pin'; el.tabIndex=0; el.role='button'; el.dataset.project=p.id;
+      const chips=p.tags.map((t,i)=>`<span class="chip chip--${CHIP_HUES[i%CHIP_HUES.length]}">${t}</span>`).join('');
+      el.innerHTML=`
+        <h4>${p.name}</h4>
+        <div class="meta">Last update: ${p.updated} • ${p.focus}</div>
+        <div class="chips">${chips}</div>
+        <div class="chips" style="margin-top:12px;">
+          <button class="icon-btn" data-settings="${p.id}" aria-label="Project settings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 5 15.4a1.65 1.65 0 0 0-1.51-1H3.4a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 5 8.9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9.4 5a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09A1.65 1.65 0 0 0 15.4 5c.46 0 .91-.18 1.25-.52l.06-.06a2 2 0 1 1 2.83 2.83l-.06-.06c-.34.34-.52.79-.52 1.25 0 .6.23 1.17.65 1.6.42.43 1 .66 1.6.65z"></path>
+            </svg>
+          </button>
+        </div>`;
+      pinsEl.appendChild(el);
+    });
+
+    // Render messages
+    const msgsEl=$('#msgs');
+    MESSAGES.forEach((m,i)=>{
+      const hue=CHIP_HUES[(i+2)%CHIP_HUES.length];
+      const el=document.createElement('article');
+      el.className='pin msg'; el.tabIndex=0; el.role='button'; el.dataset.chat=m.id;
+      el.innerHTML=`<h4>${m.name}</h4><div class="meta">${m.time}</div><div class="chips"><span class="chip chip--${hue}">${m.text}</span></div>`;
+      msgsEl.appendChild(el);
+    });
+
+    // Render insights
+    const insightsEl=$('#insights');
+    INSIGHTS.forEach(n=>{
+      const el=document.createElement('article');
+      el.className='news'; el.tabIndex=0; el.role='button'; el.dataset.insight=n.id;
+      el.innerHTML=`<h4>${n.title}</h4><div class="meta">${n.team} • ${n.time}</div><p>${n.blurb}</p>`;
+      insightsEl.appendChild(el);
+    });
+
+    // Demo toast
+    function toast(msg){
+      const box=document.getElementById('toastbox')||(()=>{const b=document.createElement('div');b.id='toastbox';Object.assign(b.style,{position:'fixed',bottom:'22px',left:'50%',transform:'translateX(-50%)',zIndex:9999});document.body.appendChild(b);return b;})();
+      const n=document.createElement('div');n.textContent=msg;n.setAttribute('role','status');
+      n.style.cssText=`margin-top:8px;padding:10px 14px;border-radius:999px;background:rgba(255,255,255,.90);border:1px solid rgba(255,255,255,.95);color:#0f172a;box-shadow:0 10px 24px rgba(15,23,42,.10);backdrop-filter:blur(10px);font-weight:600;white-space:nowrap;opacity:0;transform:translateY(8px);transition:opacity .15s ease, transform .15s ease;`;
+      box.appendChild(n); requestAnimationFrame(()=>{n.style.opacity=1;n.style.transform='translateY(0)'}); setTimeout(()=>{n.style.opacity=0;n.style.transform='translateY(8px)';setTimeout(()=>n.remove(),200)},1400);
+    }
+    function demoRoute(path){ toast(`Routing to ${path}…`); }
+
+    document.addEventListener('click', e=>{
+      const settings=e.target.closest('[data-settings]'); if(settings){e.stopPropagation();return demoRoute('project-settings:'+settings.dataset.settings)}
+      const pin=e.target.closest('.pin[data-project]'); if(pin){return demoRoute('project:'+pin.dataset.project)}
+      const msg=e.target.closest('.msg[data-chat]'); if(msg){return demoRoute('chat:'+msg.dataset.chat)}
+      const insight=e.target.closest('.news[data-insight]'); if(insight){return demoRoute('insight:'+insight.dataset.insight)}
+      const route=e.target.closest('[data-route]'); if(route){demoRoute(route.dataset.route)}
+    });
+  </script>
+</body>
+</html>
